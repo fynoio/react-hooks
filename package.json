@@ -1,6 +1,6 @@
 {
   "name": "@fyno/react-hooks",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "",
   "author": "KSaiVinod",
   "license": "Apache-2.0",
@@ -9,6 +9,8 @@
     "url": "https://github.com/fynoio/react-hooks.git"
   },
   "main": "dist/index.js",
+  "module": "dist/index.es.js",
+  "types": "dist/index.d.ts",
   "type": "module",
   "engines": {
     "node": ">=8",
@@ -39,16 +41,17 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-test-renderer": "^18.2.0",
-    "rollup": "^4.0.0",
-    "rollup-plugin-sass": "^1.12.21",
+    "rollup": "^4.24.0",
+    "rollup-plugin-sass": "^1.13.0",
     "rollup-plugin-typescript2": "^0.36.0",
-    "rollup-plugin-uglify": "^6.0.2",
     "typescript": "^5.3.2"
   },
   "files": [
     "dist"
   ],
   "dependencies": {
+    "@rollup/plugin-terser": "^0.4.4",
+    "react-native-device-info": "^10.13.1",
     "socket.io-client": "^4.7.2"
   },
   "publishConfig": {
