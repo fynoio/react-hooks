@@ -65,6 +65,15 @@ type NotificationContent = {
   additional_data?: any;
 };
 
+let bundleIdorOrigin;
+
+if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
+  const DeviceInfo = require('react-native-device-info');
+  bundleIdorOrigin = DeviceInfo.getBundleId();
+} else {
+  bundleIdorOrigin = window.location.origin;
+}
+
 const useInappManager = (props: FynoProps) => {
   const { distinctId, workspaceId, integrationId, signature, overrideInappUrl } =
     props;
@@ -122,7 +131,7 @@ const useInappManager = (props: FynoProps) => {
         extraHeaders: {
           'x-fyno-signature': signature,
           cookie: `x-fyno-cookie=${signature}`,
-          origin: 'http://localhost',
+          origin: bundleIdorOrigin,
         },
         withCredentials: true,
       });
@@ -131,14 +140,10 @@ const useInappManager = (props: FynoProps) => {
       setErrMsg(err.message);
     });
     socketRef.current.on('connectionSuccess', () => {
-      console.log(
-        '🚀 ~ file: NotificationsHomeContext.js:75 ~ socketRef.current.on ~ connectionSuccess:',
-      );
       resetState();
       socketRef.current?.emit('get:messages', { filter: 'all', page: 1 });
     });
     socketRef.current.on('message', (data) => {
-      console.log('inside message received socket');
       socketRef.current?.emit('message:recieved', { id: data._Id });
       if (!data?.notification_content?.silent_message) {
         handleIncomingMessage(data);
@@ -187,13 +192,10 @@ const useInappManager = (props: FynoProps) => {
       setCount((prev) => prev - 1);
     });
     socketRef.current.on('disconnect', (err) => {
-      setErrMsg(err.toString);
+      setErrMsg(err.toString());
     });
 
     return () => {
-      console.log(
-        '🚀 ~ file: NotificationsHomeContext.js:135 ~ return ~ disconnect:',
-      );
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
@@ -224,7 +226,6 @@ const useInappManager = (props: FynoProps) => {
 
   const handleIncomingMessage = (message: Notification) => {
     message.isRead = false;
-    console.log('in handleIncomingMessage');
     setList((prev) => {
       return [message, ...prev];
     });
