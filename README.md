@@ -6,6 +6,8 @@ The useInappManager hook is a powerful React custom hook designed to facilitate 
 
 ### Installation
 
+#### This package requires node version >=8 and npm version >= 5
+
 ```bash
 npm install @fyno/react-hooks
 ```

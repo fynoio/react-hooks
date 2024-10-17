@@ -46,3 +46,7 @@ typings/
 
 # generate output
 dist
+
+# lock files
+yarn.lock
+package-lock.json
