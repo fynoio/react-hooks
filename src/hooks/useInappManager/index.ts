@@ -7,6 +7,7 @@ type FynoProps = {
   integrationId: string;
   signature: string;
   overrideInappUrl?: string;
+  onMessageReceived?: Function;
 };
 
 export enum NotificationPriority {
@@ -16,6 +17,7 @@ export enum NotificationPriority {
 }
 type Notification = {
   _id: any;
+  msg_id: string;
   to: string;
   ws_id: string;
   campaign_id?: string;
@@ -75,9 +77,16 @@ if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
 }
 
 const useInappManager = (props: FynoProps) => {
-  const { distinctId, workspaceId, integrationId, signature, overrideInappUrl } =
-    props;
+  const {
+    distinctId,
+    workspaceId,
+    integrationId,
+    signature,
+    overrideInappUrl,
+    onMessageReceived,
+  } = props;
   const [errMsg, setErrMsg] = useState<string>('');
+  const [isSeen, setIsSeen] = useState<Boolean>(true);
   const [list, setList] = useState<Array<Notification>>([]);
   const [unreadList, setUnreadList] = useState<Array<Notification>>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -93,14 +102,14 @@ const useInappManager = (props: FynoProps) => {
 
   const handleChangeStatus = (status: DeliverStatus) => {
     if (status.status === 'DELETED') {
-      setList((prev) => prev.filter((msg) => msg._id !== status.messageId));
+      setList((prev) => prev.filter((msg) => msg.msg_id !== status.messageId));
       setCount((prev) => prev - 1);
       if (!status?.isRead) {
         setUnreadCount((prev) => prev - 1);
       }
     } else if (status.status === 'READ') {
       setList((prev) => {
-        const message = prev.find((msg) => msg._id === status.messageId);
+        const message = prev.find((msg) => msg.msg_id === status.messageId);
         if (message) {
           message?.status.push(status);
           message.isRead = true;
@@ -108,11 +117,11 @@ const useInappManager = (props: FynoProps) => {
 
         return prev;
       });
-      setUnreadList((prev) => prev.filter((msg) => msg._id !== status.messageId));
+      setUnreadList((prev) => prev.filter((msg) => msg.msg_id !== status.messageId));
       setUnreadCount((prev) => prev - 1);
     } else {
       setList((prev) => {
-        prev.find((msg) => msg._id === status.messageId)?.status.push(status);
+        prev.find((msg) => msg.msg_id === status.messageId)?.status.push(status);
         return prev;
       });
     }
@@ -144,9 +153,12 @@ const useInappManager = (props: FynoProps) => {
       socketRef.current?.emit('get:messages', { filter: 'all', page: 1 });
     });
     socketRef.current.on('message', (data) => {
-      socketRef.current?.emit('message:recieved', { id: data._Id });
+      socketRef.current?.emit('message:recieved', { id: data.msg_id });
       if (!data?.notification_content?.silent_message) {
         handleIncomingMessage(data);
+      }
+      if (onMessageReceived) {
+        onMessageReceived(data);
       }
     });
     socketRef.current.on('messages:state', (data) => {
@@ -172,14 +184,14 @@ const useInappManager = (props: FynoProps) => {
     socketRef.current.on('statusUpdated', (status) => {
       handleChangeStatus(status);
     });
-    // socketRef.current.on('lastSeenUpdated', time => {
-    //   localStorage.setItem('fynoinapp_ls', time);
-    // });
+    socketRef.current.on('lastSeenUpdated', (lastseen) => {
+      setIsSeen(lastseen);
+    });
     socketRef.current.on('tag:updated', (id) => {
       var id_done = '';
 
       setList((prev) => {
-        var prevMessage = prev.filter((item) => item._id === id);
+        var prevMessage = prev.filter((item) => item.msg_id === id);
         if (
           id_done !== id &&
           !new RegExp(/"READ"/).test(JSON.stringify(prevMessage[0]?.status))
@@ -187,7 +199,7 @@ const useInappManager = (props: FynoProps) => {
           setUnreadCount((ucount) => ucount - 1);
           id_done = id;
         }
-        return prev.filter((item) => item._id !== id);
+        return prev.filter((item) => item.msg_id !== id);
       });
       setCount((prev) => prev - 1);
     });
@@ -224,6 +236,10 @@ const useInappManager = (props: FynoProps) => {
 
   const handleClick = () => {};
 
+  const updateLastSeen = () => {
+    socketRef.current?.emit('updateLastSeen');
+  };
+
   const handleIncomingMessage = (message: Notification) => {
     message.isRead = false;
     setList((prev) => {
@@ -248,6 +264,7 @@ const useInappManager = (props: FynoProps) => {
       unreadList,
       count,
       errMsg,
+      isSeen,
     },
     handlers: {
       handleClick,
@@ -257,6 +274,7 @@ const useInappManager = (props: FynoProps) => {
       loadMoreNotifications,
       deleteAllMessages,
       handleMarkAllAsRead,
+      updateLastSeen,
     },
   };
 };
