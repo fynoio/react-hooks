@@ -2,7 +2,6 @@ import sass from 'rollup-plugin-sass';
 import { defineConfig } from 'rollup';
 import typescript from 'rollup-plugin-typescript2';
 import terser from '@rollup/plugin-terser';
-import pkg from './package.json' assert { type: 'json' };
 
 export default defineConfig({
   input: 'src/hooks/useInappManager/index.ts',
