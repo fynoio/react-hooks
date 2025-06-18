@@ -8,6 +8,7 @@ type FynoProps = {
   signature: string;
   overrideInappUrl?: string;
   onMessageReceived?: Function;
+  pageLimit?: number;
 };
 
 export enum NotificationPriority {
@@ -84,15 +85,19 @@ const useInappManager = (props: FynoProps) => {
     signature,
     overrideInappUrl,
     onMessageReceived,
+    pageLimit,
   } = props;
   const [errMsg, setErrMsg] = useState<string>('');
   const [isSeen, setIsSeen] = useState<Boolean>(true);
   const [list, setList] = useState<Array<Notification>>([]);
+  const [page, setPage] = useState<Array<Notification>>([]);
   const [unreadList, setUnreadList] = useState<Array<Notification>>([]);
   const [unreadCount, setUnreadCount] = useState<number>(0);
   // const [page, setPage] = useState<number>(1);
   const [count, setCount] = useState<number>(0);
   const socketRef = useRef<Socket | null>(null);
+  const [cursor, setCursor] = useState({ next: null, prev: null });
+  const [limit] = useState(pageLimit || 20);
   const resetState = () => {
     setErrMsg('');
     setList([]);
@@ -150,7 +155,12 @@ const useInappManager = (props: FynoProps) => {
     });
     socketRef.current.on('connectionSuccess', () => {
       resetState();
-      socketRef.current?.emit('get:messages', { filter: 'all', page: 1 });
+      socketRef.current?.emit('get:messages-ref', {
+        filter: 'all',
+        cursor: '',
+        limit,
+        direction: 'next',
+      });
     });
     socketRef.current.on('message', (data) => {
       socketRef.current?.emit('message:recieved', { id: data.msg_id });
@@ -180,6 +190,19 @@ const useInappManager = (props: FynoProps) => {
       setUnreadCount(data.messages.unread);
       setCount(data.messages.total);
       // setPage(data.page);
+    });
+    socketRef.current.on('messages:state-ref', (data) => {
+      setPage(data.messages.messages);
+      data.filter === 'all'
+        ? setList((prev) => {
+            return prev.concat(data.messages.messages);
+          })
+        : setUnreadList((prev) => {
+            return prev.concat(data.messages.messages);
+          });
+      setUnreadCount(data.messages.unread);
+      setCount(data.messages.total);
+      setCursor(data.cursor);
     });
     socketRef.current.on('statusUpdated', (status) => {
       handleChangeStatus(status);
@@ -224,6 +247,27 @@ const useInappManager = (props: FynoProps) => {
     }
   };
 
+  const paginate = (_cursor: string, direction: string) => {
+    if (socketRef.current) {
+      if (!(direction in ['next', 'prev'])) {
+        direction = 'next';
+      }
+      if (direction === 'next' && cursor.next)
+        socketRef.current.emit('get:messages-ref', {
+          cursor: _cursor,
+          direction,
+          limit,
+        });
+
+      if (direction === 'prev' && cursor.prev)
+        socketRef.current.emit('get:messages-ref', {
+          cursor: _cursor,
+          direction,
+          limit,
+        });
+    }
+  };
+
   const deleteAllMessages = () => {
     socketRef.current?.emit('markAll:delete', signature);
     setUnreadCount(0);
@@ -265,6 +309,8 @@ const useInappManager = (props: FynoProps) => {
       count,
       errMsg,
       isSeen,
+      cursor,
+      page,
     },
     handlers: {
       handleClick,
@@ -275,6 +321,7 @@ const useInappManager = (props: FynoProps) => {
       deleteAllMessages,
       handleMarkAllAsRead,
       updateLastSeen,
+      paginate,
     },
   };
 };
