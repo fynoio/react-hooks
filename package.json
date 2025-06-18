@@ -1,6 +1,6 @@
 {
   "name": "@fyno/react-hooks",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "",
   "author": "KSaiVinod",
   "license": "Apache-2.0",
@@ -52,7 +52,6 @@
   ],
   "dependencies": {
     "@rollup/plugin-terser": "^0.4.4",
-    "react-native-device-info": "^10.13.1",
     "socket.io-client": "^4.7.2"
   },
   "publishConfig": {
